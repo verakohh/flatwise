@@ -32,34 +32,35 @@ def extract_remaining_lease_years(lease_str: str) -> float:
     return round(total_years, 2)
 
 
-def extract_storey_midpoint(storey_range: str) -> float:
+def validate_storey_range_format(storey_range: str) -> bool:
     """
-    Converts storey range to midpoint value.
-    
-    Args:
-        storey_range: String 
-        
-    Returns:
-        float: Midpoint of the range 
+    Validates that storey range follows the expected format of ''XX TO YY'.
     """
     if pd.isna(storey_range):
-        return np.nan
+        return False
     
-    storey_str = str(storey_range).strip()
-
-    if 'TO' in storey_str:
-        parts = storey_str.split('TO')
-        if len(parts) == 2:
-            min_storey = int(parts[0].strip())
-            max_storey = int(parts[1].strip())
-            midpoint = (min_storey + max_storey) / 2.0
-        return midpoint
-    else:
-        try:
-            return float(storey_str)
-        except ValueError:
-            return np.nan
-
+    try:
+        parts = str(storey_range).strip().split(' TO ')
+        
+        if len(parts) != 2:
+            return False
+        
+        lower = parts[0].strip()
+        upper = parts[1].strip()
+        
+        if not (lower.isdigit() and upper.isdigit()):
+            return False
+        
+        if not (len(lower) == 2 and len(upper) == 2):
+            return False
+        
+        if int(upper) <= int(lower):
+            return False
+        
+        return True
+        
+    except (ValueError, AttributeError):
+        return False
 
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -84,10 +85,22 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     else:
         print("No rows removed")
     
-    # Ensures string columns are strings and upercased for case-insensitive filtering 
+    invalid_storey = ~clean_df['storey_range'].apply(validate_storey_range_format)
+    invalid_count = invalid_storey.sum()
+    
+    if invalid_count > 0:
+        print(f"Warning: Found {invalid_count} records with invalid storey_range format")
+        print("Sample invalid values:")
+        print(clean_df[invalid_storey]['storey_range'].value_counts().head())
+        clean_df = clean_df[~invalid_storey]
+    else:
+        print("All storey_range values are valid")
+
+    # Ensures string columns are strings and uppercased for case-insensitive filtering 
     clean_df['town'] = clean_df['town'].astype(str).str.upper()
     clean_df['flat_type'] = clean_df['flat_type'].astype(str).str.upper()
     clean_df['flat_model'] = clean_df['flat_model'].astype(str).str.upper()
+    clean_df['storey_range'] = clean_df['storey_range'].astype(str).str.upper()
 
     # Ensures numeric columns are numeric
     clean_df['floor_area_sqm'] = pd.to_numeric(clean_df['floor_area_sqm'], errors='coerce')
@@ -99,9 +112,6 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
         extract_remaining_lease_years
     )
     
-    clean_df['storey_midpoint'] = clean_df['storey_range'].apply(
-        extract_storey_midpoint
-    )
     print("Features extracted")
     
     return clean_df
@@ -153,6 +163,7 @@ def preprocess_hdb_data(filepath: str, verbose: bool = True) -> Tuple[pd.DataFra
 if __name__ == "__main__":
     df, summary = preprocess_hdb_data('../ResaleFlatPricesData.csv')
     
+    print("\nNumber of columns:", len(df.columns))
     print("\nColumn names:")
     print(df.columns.tolist())
     
