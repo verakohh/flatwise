@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlatWise - AI HDB Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        :root {
+            --background: hsl(0 0% 100%);
+            --foreground: hsl(215 25% 20%);
+            --card: hsl(0 0% 100%);
+            --primary: hsl(210 85% 42%);
+            --primary-foreground: hsl(0 0% 100%);
+            --secondary: hsl(210 25% 95%);
+            --muted-foreground: hsl(215 15% 50%);
+            --accent: hsl(180 70% 50%);
+            --accent-foreground: hsl(0 0% 100%);
+            --border: hsl(215 20% 88%);
+            --radius: 0.75rem;
+        }
+
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .pill-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            border: 1px solid var(--border);
+            background-color: var(--background);
+            color: var(--foreground);
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .pill-btn:hover { background-color: var(--secondary); }
+        .pill-btn.active {
+            background-color: hsl(213, 84%, 58%);
+            color: var(--primary-foreground);
+            border-color: hsl(213, 84%, 58%);
+        }
+        .pill-btn.active .close-icon { display: inline-block; }
+        .close-icon { display: none; margin-left: 0.5rem; font-style: normal; font-weight: 600; }
+        .info-icon { cursor: pointer; color: hsl(215 15% 50%); transition: color 0.2s; }
+        .info-icon:hover { color: var(--primary); }
+    </style>
+</head>
+<body class="bg-white">
+
+    <header class="h-[40vh] flex flex-col items-center justify-center text-center p-8 text-white" style="background: linear-gradient(135deg, hsl(210 85% 42%) 0%, hsl(180 70% 50%) 100%);">
+        <div class="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-4">
+            <i class="fas fa-microchip mr-2"></i>AI-Powered HDB Search
+        </div>
+        <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">Find Your Perfect HDB Home with FlatWise</h1>
+        <p class="max-w-2xl text-lg md:text-xl text-white/80 mb-8">
+            Transform your home search with intelligent AI that understands your needs. Get personalized recommendations with transparent scores and expert insights.
+        </p>
+        <button id="start-search-btn" class="bg-white text-blue-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition">
+            Start Your Search
+        </button>
+    </header>
+    
+    <section class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="text-center space-y-3">
+                    <div class="w-16 h-16 rounded-xl bg-blue-100 flex items-center justify-center mx-auto">
+                        <i class="fas fa-brain fa-2x text-blue-600"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">AI-Driven Insights</h3>
+                    <p class="text-sm text-gray-500">Bayesian Network analysis provides market price predictions and value assessments</p>
+                </div>
+                <div class="text-center space-y-3">
+                    <div class="w-16 h-16 rounded-xl bg-teal-100 flex items-center justify-center mx-auto">
+                        <i class="fas fa-arrow-trend-up fa-2x text-teal-600"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">Smart Ranking</h3>
+                    <p class="text-sm text-gray-500">Multi-criteria decision analysis matches flats to your unique preferences</p>
+                </div>
+                <div class="text-center space-y-3">
+                    <div class="w-16 h-16 rounded-xl bg-blue-100 flex items-center justify-center mx-auto">
+                        <i class="fas fa-shield-halved fa-2x text-blue-600"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">Data-Driven</h3>
+                    <p class="text-sm text-gray-500">Powered by comprehensive HDB resale data and proven algorithms</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div id="search-section" class="flex min-h-screen bg-gray-50 text-gray-800">
+        <aside class="w-[400px] bg-white p-6 border-r border-gray-200 overflow-y-auto flex flex-col sticky top-0 h-screen">
+            <div class="flex-grow">
+                <h2 class="text-2xl font-bold mb-1">Find Your Flat</h2>
+                <p class="text-sm text-gray-500 mb-8">Set your preferences to discover your ideal home.</p>
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Must-Haves (Constraints)</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Town/Estate</label>
+                                <div class="relative mt-1" id="town-dropdown-container">
+                                    <div id="town-selector-display" class="flex items-center justify-between w-full p-2 border border-border rounded-md cursor-pointer bg-white hover:border-blue-500">
+                                        <span id="town-selector-text" class="text-gray-500">Select towns...</span>
+                                        <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                                    </div>
+                                    <div id="town-preview-pills" class="flex flex-wrap gap-1 mt-2"></div>
+                                    <div id="town-dropdown-content" class="hidden absolute w-full mt-1 bg-white border border-border rounded-md shadow-lg z-10 p-4 max-h-72 overflow-y-auto"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Flat Type</label>
+                                <div id="flat-type-pill-list" class="flex flex-wrap gap-2 mt-2">
+                                    <button class="pill-btn" onclick="togglePill(this)">1-ROOM <span class="close-icon">&times;</span></button>
+                                    <button class="pill-btn" onclick="togglePill(this)">2-ROOM <span class="close-icon">&times;</span></button>
+                                    <button class="pill-btn" onclick="togglePill(this)">3-ROOM <span class="close-icon">&times;</span></button>
+                                    <button class="pill-btn" onclick="togglePill(this)">4-ROOM <span class="close-icon">&times;</span></button>
+                                    <button class="pill-btn" onclick="togglePill(this)">5-ROOM <span class="close-icon">&times;</span></button>
+                                    <button class="pill-btn" onclick="togglePill(this)">EXECUTIVE <span class="close-icon">&times;</span></button>
+                                    <button class="pill-btn" onclick="togglePill(this)">MULTI-GENERATION <span class="close-icon">&times;</span></button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Maximum Price (S$)</label>
+                                <input id="max-price-input" type="text" placeholder="e.g., 650000" class="w-full mt-1 p-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Minimum Remaining Lease (Years)</label>
+                                <input id="min-lease-input" type="text" placeholder="e.g., 70" class="w-full mt-1 p-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Storey Range</label>
+                                <div class="relative mt-1" id="storey-dropdown-container">
+                                    <div id="storey-selector-display" class="flex items-center justify-between w-full p-2 border border-border rounded-md cursor-pointer bg-white hover:border-blue-500">
+                                        <span id="storey-selector-text" class="text-gray-500">Select ranges...</span>
+                                        <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                                    </div>
+                                    <div id="storey-dropdown-content" class="hidden absolute w-full mt-1 bg-white border border-border rounded-md shadow-lg z-10 p-4 max-h-72 overflow-y-auto"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Flat Model</label>
+                                <div class="relative mt-1" id="flat-model-dropdown-container">
+                                    <div id="flat-model-selector-display" class="flex items-center justify-between w-full p-2 border border-border rounded-md cursor-pointer bg-white hover:border-blue-500">
+                                        <span id="flat-model-selector-text" class="text-gray-500">Select models...</span>
+                                        <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                                    </div>
+                                    <div id="flat-model-dropdown-content" class="hidden absolute w-full mt-1 bg-white border border-border rounded-md shadow-lg z-10 p-4 max-h-72 overflow-y-auto"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Your Preferences (Rankings)</h3>
+                        <div class="space-y-4">
+                             <div>
+                                <label class="text-sm font-medium text-gray-700">What's your top priority?</label>
+                                <select id="priority-select" class="w-full mt-1 p-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-blue-500">
+                                    <option>None - treat equally</option>
+                                    <option>Price</option>
+                                    <option>Floor Area</option>
+                                    <option>Lease</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="find-btn" class="w-full bg-[#3B82F6] text-white font-semibold py-3 rounded-lg hover:opacity-90 transition mt-2 flex items-center justify-center">
+                <i class="fas fa-search mr-2"></i>Find My Home
+            </button>
+        </aside>
+
+        <main class="flex-1 p-8">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-2xl font-bold">Your Top Recommendations</h1>
+                    <p class="text-gray-500">Found 0 matching flats. Adjust filters to begin.</p>
+                </div>
+                <div class="flex items-center">
+                    <label for="sort" class="text-sm mr-2 text-gray-600">Sort by:</label>
+                    <select id="sort" class="border border-border rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500">
+                        <option>Recommended</option>
+                        <option>Price (Low to High)</option>
+                        <option>Price (High to Low)</option>
+                        <option>Area (Largest First)</option>
+                        <option>Storey (Highest First)</option>
+                        <option>Nearest MRT</option>
+                    </select>
+                </div>
+            </div>
+            <div class="space-y-6" id="results-container">
+                </div>
+        </main>
+    </div>
+
+</body>
+</html>

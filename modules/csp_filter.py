@@ -130,7 +130,7 @@ def csp_filter_flats(df: pd.DataFrame,
             print(f"After floor area filter: {combined_mask.sum()} flats remaining")
 
     # 5. Storey range constraint
-    if 'storey_ranges' in constraints:
+    if 'storey_ranges' in constraints and constraints['storey_ranges']:
         storey_ranges_mask = create_storey_ranges_mask(df, constraints['storey_ranges'])
         combined_mask &= storey_ranges_mask
         if verbose:

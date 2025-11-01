@@ -1,0 +1,6 @@
+{
+  "resale_price":   {"direction": "cost",    "label": "Price"},
+  "floor_area_sqm": {"direction": "benefit", "label": "Floor Area"},
+  "remaining_lease_years": {"direction": "benefit", "label": "Lease Remaining"}
+  
+}
