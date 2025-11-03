@@ -7,6 +7,8 @@ import pandas as pd
 from modules.preprocessing import preprocess_hdb_data
 from modules.csp_filter import csp_filter_flats
 from modules.mcda_wsm import mcda_wsm
+from modules.insight_generator import InsightGenerator
+from modules.bayes_utils import load_bayesian_model, get_categories_from_file
 
 # ---------------------------
 # Setup
@@ -26,6 +28,9 @@ app.add_middleware(
 
 # Load data once
 df, _ = preprocess_hdb_data("ResaleFlatPricesData.csv", verbose=True)
+
+# Load BN model, categories
+insight_generator = InsightGenerator(load_bayesian_model("BayesianNetwork.pkl"), get_categories_from_file("CategoricalColumnsCategories.pkl"))
 
 # Load MCDA config
 with open("config/mcda_criteria.json") as f:
@@ -69,6 +74,8 @@ async def recommend(request: Request):
     # Apply MCDA
     weights = get_weights(priority, criteria)
     ranked_df, _= mcda_wsm(filtered_df, criteria, weights)
+
+    ranked_df["insight"] = ranked_df.apply(insight_generator.get_insights_on_row, axis=1)
 
     # Return top 10 as JSON
     top = ranked_df.head(10).to_dict(orient="records")
