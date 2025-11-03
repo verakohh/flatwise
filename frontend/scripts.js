@@ -158,4 +158,81 @@ function getSelectedStoreys(){return Array.from(document.querySelectorAll('.stor
 function sortAndRenderResults(){const sortBy=document.getElementById('sort').value,sortedFlats=[...currentRecommendations];switch(sortBy){case'Price (Low to High)':sortedFlats.sort((a,b)=>a.resale_price-b.resale_price);break;case'Price (High to Low)':sortedFlats.sort((a,b)=>b.resale_price-a.resale_price);break;case'Area (Largest First)':sortedFlats.sort((a,b)=>b.floor_area_sqm-a.floor_area_sqm);break;case'Storey (Highest First)':sortedFlats.sort((a,b)=>parseInt(b.storey_range.split(' TO ')[0])-parseInt(a.storey_range.split(' TO ')[0]));break;case'Nearest MRT':sortedFlats.sort((a,b)=>(a.mrt_distance_m||Infinity)-(b.mrt_distance_m||Infinity));break;case'Recommended':default:break}renderFlats(sortedFlats)}
 function getSelectedPills(containerId){const container=document.getElementById(containerId);if(!container)return[];return Array.from(container.querySelectorAll('.pill-btn.active')).map(pill=>pill.textContent.trim().replace(/\s*×$/,''))}
 function togglePill(element){element.classList.toggle('active')}
-function renderFlats(flats){const resultsContainer=document.getElementById('results-container'),countElement=document.querySelector('#search-section main p.text-gray-500');if(!flats||flats.length===0){resultsContainer.innerHTML='<div class="text-center py-10 px-6 bg-yellow-50 rounded-lg"><i class="fas fa-ghost fa-2x text-yellow-400 mb-3"></i><p class="text-yellow-600">No flats found matching your criteria. Try adjusting your filters.</p></div>';countElement.textContent='Found 0 matching flats.';return}countElement.textContent=`Found ${currentRecommendations.length} matching flats. Showing your top 10 best matches.`;resultsContainer.innerHTML='';flats.forEach((flat,index)=>{const cardHTML=`<div class="bg-white border border-border rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-cyan-300"><div class="flex justify-between items-start mb-4"><div><div class="flex items-center text-lg font-semibold text-gray-800"><span class="text-base font-bold text-gray-400 mr-2">#${index+1}</span> ${flat.street_name}, Block ${flat.block}</div><p class="text-sm text-muted-foreground ml-7">${flat.flat_type} - ${flat.flat_model}</p></div><div class="bg-[#2DD4BF] text-white text-lg font-bold px-4 py-2 rounded-full">${flat.score?flat.score.toFixed(1):'N/A'}/10</div></div><div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 my-6"><div class="flex items-center"><div class="w-10 h-10 flex items-center justify-center bg-cyan-50 rounded-full mr-3"><i class="fas fa-dollar-sign text-[#2DD4BF] text-lg"></i></div><div><p class="text-sm text-muted-foreground">Price</p><p class="font-semibold text-gray-800">S$${flat.resale_price.toLocaleString()}</p></div></div><div class="flex items-center"><div class="w-10 h-10 flex items-center justify-center bg-cyan-50 rounded-full mr-3"><i class="fas fa-ruler-combined text-[#2DD4BF] text-lg"></i></div><div><p class="text-sm text-muted-foreground">Floor Area</p><p class="font-semibold text-gray-800">${flat.floor_area_sqm} sqm</p></div></div><div class="flex items-center"><div class="w-10 h-10 flex items-center justify-center bg-cyan-50 rounded-full mr-3"><i class="fas fa-building text-[#2DD4BF] text-lg"></i></div><div><p class="text-sm text-muted-foreground">Storey</p><p class="font-semibold text-gray-800">${flat.storey_range}</p></div></div><div class="flex items-center"><div class="w-10 h-10 flex items-center justify-center bg-cyan-50 rounded-full mr-3"><i class="fas fa-file-contract text-[#2DD4BF] text-lg"></i></div><div><p class="text-sm text-muted-foreground">Lease</p><p class="font-semibold text-gray-800">${flat.remaining_lease_years} yrs</p></div></div></div></div>`;resultsContainer.innerHTML+=cardHTML})}
+function renderFlats(flats) {
+  const resultsContainer = document.getElementById('results-container');
+  const countElement = document.querySelector('#search-section main p.text-gray-500');
+
+  if (!flats || flats.length === 0) {
+    resultsContainer.innerHTML = `
+      <div class="text-center py-10 px-6 bg-yellow-50 rounded-lg">
+        <i class="fas fa-ghost fa-2x text-yellow-400 mb-3"></i>
+        <p class="text-yellow-600">No flats found matching your criteria. Try adjusting your filters.</p>
+      </div>
+    `;
+    countElement.textContent = 'Found 0 matching flats.';
+    return;
+  }
+
+  countElement.textContent = `Found ${currentRecommendations.length} matching flats. Showing your top 10 best matches.`;
+  resultsContainer.innerHTML = '';
+
+  flats.forEach((flat, index) => {
+    const cardHTML = `
+      <div class="bg-white border border-border rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-cyan-300">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <div class="flex items-center text-lg font-semibold text-gray-800">
+              <span class="text-base font-bold text-gray-400 mr-2">#${index + 1}</span> ${flat.street_name}, Block ${flat.block}
+            </div>
+            <p class="text-sm text-muted-foreground ml-7">${flat.flat_type} - ${flat.flat_model}</p>
+          </div>
+          <div class="bg-[#2DD4BF] text-white text-lg font-bold px-4 py-2 rounded-full">
+            ${flat.score ? flat.score.toFixed(1) : 'N/A'}/10
+          </div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 my-6">
+          <div class="flex items-center">
+            <div class="w-10 h-10 flex items-center justify-center bg-cyan-50 rounded-full mr-3">
+              <i class="fas fa-dollar-sign text-[#2DD4BF] text-lg"></i>
+            </div>
+            <div>
+              <p class="text-sm text-muted-foreground">Price</p>
+              <p class="font-semibold text-gray-800">S$${flat.resale_price.toLocaleString()}</p>
+            </div>
+          </div>
+          <div class="flex items-center">
+            <div class="w-10 h-10 flex items-center justify-center bg-cyan-50 rounded-full mr-3">
+              <i class="fas fa-ruler-combined text-[#2DD4BF] text-lg"></i>
+            </div>
+            <div>
+              <p class="text-sm text-muted-foreground">Floor Area</p>
+              <p class="font-semibold text-gray-800">${flat.floor_area_sqm} sqm</p>
+            </div>
+          </div>
+          <div class="flex items-center">
+            <div class="w-10 h-10 flex items-center justify-center bg-cyan-50 rounded-full mr-3">
+              <i class="fas fa-building text-[#2DD4BF] text-lg"></i>
+            </div>
+            <div>
+              <p class="text-sm text-muted-foreground">Storey</p>
+              <p class="font-semibold text-gray-800">${flat.storey_range}</p>
+            </div>
+          </div>
+          <div class="flex items-center">
+            <div class="w-10 h-10 flex items-center justify-center bg-cyan-50 rounded-full mr-3">
+              <i class="fas fa-file-contract text-[#2DD4BF] text-lg"></i>
+            </div>
+            <div>
+              <p class="text-sm text-muted-foreground">Lease</p>
+              <p class="font-semibold text-gray-800">${flat.remaining_lease_years} yrs</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-800">${flat.insight}</p>
+        </div>
+      </div>
+    `;
+    resultsContainer.innerHTML += cardHTML;
+  });
+}
