@@ -24,8 +24,8 @@ app.add_middleware(
 )
 # --------------------------------
 
-# Load data once
-df, _ = preprocess_hdb_data("ResaleFlatPricesData.csv", verbose=True)
+# Load pre-processed data with MRT distance information
+df = pd.read_csv("ResaleFlatPricesData_processed.csv")
 
 # Load MCDA config
 with open("config/mcda_criteria.json") as f:

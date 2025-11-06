@@ -8,6 +8,7 @@ from modules.csp_filter import (
     create_storey_ranges_mask,
     create_remaining_lease_mask,
     create_flat_models_mask,
+    create_mrt_distance_mask,
     csp_filter_flats,
     get_filter_statistics
 )
@@ -22,7 +23,8 @@ class TestCSPFilter(unittest.TestCase):
             'floor_area_sqm': [143, 110, 75, 92, 120, 88],
             'storey_range': ['01 TO 03', '07 TO 09', '04 TO 06', '04 TO 06', '10 TO 12', '07 TO 09'],
             'remaining_lease_years': [74, 70, 80, 60, 55, 68],
-            'flat_model': ['APARTMENT', 'IMPROVED', 'STANDARD', 'MODEL A', 'PREMIUM', 'MODEL A']
+            'flat_model': ['APARTMENT', 'IMPROVED', 'STANDARD', 'MODEL A', 'PREMIUM', 'MODEL A'],
+            'dist_mrt_km': [0.5, 1.2, 0.8, 0.3, 1.5, 0.6]
         })
     
     def test_price_filter(self):
@@ -143,12 +145,41 @@ class TestCSPFilter(unittest.TestCase):
         self.assertIsNone(stats['price_range']['min'])
     
     def test_empty_dataframe(self):
-        empty_df = pd.DataFrame(columns=['town', 'flat_type', 'resale_price', 
-                                        'floor_area_sqm', 'storey_range', 
+        empty_df = pd.DataFrame(columns=['town', 'flat_type', 'resale_price',
+                                        'floor_area_sqm', 'storey_range',
                                         'remaining_lease_years', 'flat_model'])
         constraints = {'min_price': 400000}
         filtered_df, stats = csp_filter_flats(empty_df, constraints)
         self.assertEqual(len(filtered_df), 0)
+
+    def test_mrt_distance_filter(self):
+        mask = create_mrt_distance_mask(self.df, max_distance=1.0)
+        self.assertEqual(mask.sum(), 4)
+
+        mask = create_mrt_distance_mask(self.df, max_distance=None)
+        self.assertTrue(mask.all())
+
+    def test_mrt_in_combined_filter(self):
+        constraints = {
+            'towns': ['BISHAN'],
+            'max_mrt_distance': 0.5
+        }
+        filtered_df, stats = csp_filter_flats(self.df, constraints)
+        self.assertEqual(len(filtered_df), 2)
+        self.assertTrue(all(filtered_df['dist_mrt_km'] <= 0.5))
+
+    def test_mrt_with_multiple_constraints(self):
+        constraints = {
+            'min_price': 400000,
+            'max_price': 600000,
+            'towns': ['BISHAN', 'ANG MO KIO'],
+            'flat_types': ['4 ROOM', '5 ROOM'],
+            'max_mrt_distance': 1.0
+        }
+        filtered_df, stats = csp_filter_flats(self.df, constraints)
+        self.assertTrue(all(filtered_df['dist_mrt_km'] <= 1.0))
+        self.assertTrue(all(filtered_df['resale_price'] >= 400000))
+        self.assertTrue(all(filtered_df['resale_price'] <= 600000))
 
 
 if __name__ == '__main__':
