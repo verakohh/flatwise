@@ -71,6 +71,20 @@ def create_flat_models_mask(df: pd.DataFrame,
     return mask
 
 
+def create_mrt_distance_mask(df: pd.DataFrame,
+                             max_distance: Optional[float] = None) -> pd.Series:
+    mask = pd.Series(True, index=df.index)
+
+    # Column existence check
+    if 'dist_mrt_km' not in df.columns:
+        print("Warning: 'dist_mrt_km' column not found. MRT filter skipped.")
+        return mask
+
+    if max_distance is not None:
+        mask = df['dist_mrt_km'] <= max_distance
+
+    return mask
+
 def csp_filter_flats(df: pd.DataFrame,
                          constraints: Dict[str, Any],
                          verbose: bool = False) -> Tuple[pd.DataFrame, Dict[str, Any]]:
@@ -110,15 +124,22 @@ def csp_filter_flats(df: pd.DataFrame,
         combined_mask &= town_mask
         if verbose:
             print(f"After town filter: {combined_mask.sum()} flats remaining")
-    
-    # 3. Flat type constraint
+
+    # 3. MRT distance constraint
+    if 'max_mrt_distance' in constraints:
+        mrt_mask = create_mrt_distance_mask(df, constraints['max_mrt_distance'])
+        combined_mask &= mrt_mask
+        if verbose:
+            print(f"After MRT distance filter: {combined_mask.sum()} flats remaining")
+
+    # 4. Flat type constraint
     if 'flat_types' in constraints:
         flat_type_mask = create_flat_types_mask(df, constraints['flat_types'])
         combined_mask &= flat_type_mask
         if verbose:
             print(f"After flat type filter: {combined_mask.sum()} flats remaining")
 
-    # 4. Floor area constraint
+    # 5. Floor area constraint
     if 'min_floor_area' in constraints or 'max_floor_area' in constraints:
         floor_area_mask = create_floor_area_mask(
             df,
@@ -129,14 +150,14 @@ def csp_filter_flats(df: pd.DataFrame,
         if verbose:
             print(f"After floor area filter: {combined_mask.sum()} flats remaining")
 
-    # 5. Storey range constraint
+    # 6. Storey range constraint
     if 'storey_ranges' in constraints and constraints['storey_ranges']:
         storey_ranges_mask = create_storey_ranges_mask(df, constraints['storey_ranges'])
         combined_mask &= storey_ranges_mask
         if verbose:
             print(f"After storey filter: {combined_mask.sum()} flats remaining")
-    
-    # 6. Remaining lease constraint
+
+    # 7. Remaining lease constraint
     if 'min_remaining_lease' in constraints:
         remaining_lease_mask = create_remaining_lease_mask(
             df,
@@ -145,8 +166,8 @@ def csp_filter_flats(df: pd.DataFrame,
         combined_mask &= remaining_lease_mask
         if verbose:
             print(f"After lease filter: {combined_mask.sum()} flats remaining")
-    
-    # 7. Flat model constraint
+
+    # 8. Flat model constraint
     if 'flat_models' in constraints:
         model_mask = create_flat_models_mask(df, constraints['flat_models'])
         combined_mask &= model_mask
@@ -180,6 +201,11 @@ def get_filter_statistics(original_df: pd.DataFrame,
             'max': filtered_df['resale_price'].max() if len(filtered_df) > 0 else None,
             'median': filtered_df['resale_price'].median() if len(filtered_df) > 0 else None
         },
+        'mrt_distance': {
+            'min': float(filtered_df['dist_mrt_km'].min()) if len(filtered_df) > 0 and 'dist_mrt_km' in filtered_df.columns else None,
+            'max': float(filtered_df['dist_mrt_km'].max()) if len(filtered_df) > 0 and 'dist_mrt_km' in filtered_df.columns else None,
+            'median': float(filtered_df['dist_mrt_km'].median()) if len(filtered_df) > 0 and 'dist_mrt_km' in filtered_df.columns else None
+        },
         'towns_present': sorted(filtered_df['town'].unique().tolist()) if len(filtered_df) > 0 else [],
         'flat_types_present': sorted(filtered_df['flat_type'].unique().tolist()) if len(filtered_df) > 0 else []
     }
@@ -195,25 +221,28 @@ if __name__ == "__main__":
         'floor_area_sqm': [95, 110, 75, 92, 120],
         'storey_range': ['01 TO 03', '07 TO 09', '04 TO 06', '04 TO 06', '10 TO 12'],
         'remaining_lease_years': [65, 70, 80, 60, 55],
-        'flat_model': ['Model A', 'Improved', 'Standard', 'Model A', 'Premium']
+        'flat_model': ['Model A', 'Improved', 'Standard', 'Model A', 'Premium'],
+        'dist_mrt_km': [0.5, 1.2, 0.8, 0.3, 1.5]
     })
     print(test_data)
-    
+
     test_constraints = {
         'min_price': 400000,
         'max_price': 550000,
         'towns': ['BISHAN', 'ANG MO KIO'],
         'flat_types': ['4 ROOM', '5 ROOM'],
         'min_floor_area': 90,
-        'storey_ranges': ['04 TO 06', '07 TO 09']
+        'storey_ranges': ['04 TO 06', '07 TO 09'],
+        'max_mrt_distance': 1.0
     }
-   
+
     resultdf, stats = csp_filter_flats(test_data, test_constraints, verbose=True)
-    
+
     print("\n\nFiltered Results:")
     print(resultdf)
-    
+
     print(f"Total results: {stats['total_results']}")
     print(f"Percentage of original: {stats['percentage_of_original']:.1f}%")
     print(f"Price range: ${stats['price_range']['min']} - ${stats['price_range']['max']}")
+    print(f"MRT distance range: {stats['mrt_distance']['min']}km - {stats['mrt_distance']['max']}km")
     

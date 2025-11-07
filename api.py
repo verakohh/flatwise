@@ -9,7 +9,6 @@ from enum import Enum
 import os # For environment variables
 
 # Import your custom modules
-from modules.preprocessing import preprocess_hdb_data
 from modules.csp_filter import csp_filter_flats
 from modules.mcda_wsm import mcda_wsm
 from modules.insight_generator import InsightGenerator
@@ -21,8 +20,9 @@ from modules.bayes_utils import load_bayesian_model, get_categories_from_file
 
 class ConstraintModel(BaseModel):
     # Use Optional for fields that might not be sent
-    max_price: Optional[int] = Field(default=None, ge=0) # "ge" = greater than or equal
-    min_remaining_lease: Optional[int] = Field(default=None, ge=0) # "ge" = greater than or equal
+    max_price: Optional[int] = Field(default=None, ge=0)
+    min_remaining_lease: Optional[int] = Field(default=None, ge=0)
+    max_mrt_distance: Optional[float] = Field(default=None, ge=0)
     towns: Optional[List[str]] = None
     flat_types: Optional[List[str]] = None
     storey_ranges: Optional[List[str]] = None
@@ -59,6 +59,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# --------------------------------
+
+
 
 # ---------------------------
 # 4. Graceful Startup & State Management
@@ -71,7 +74,7 @@ def load_global_state():
     reloading on every request.
     """
     try:
-        app.state.df, _ = preprocess_hdb_data("ResaleFlatPricesData.csv", verbose=True)
+        app.state.df = pd.read_csv("ResaleFlatPricesData_processed.csv")
         
         app.state.insight_generator = InsightGenerator(
             load_bayesian_model("BayesianNetwork.pkl"),
